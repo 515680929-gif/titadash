@@ -23,6 +23,7 @@ jobs:
 
       - name: 编译（不签名）
         run: |
+          set +e
           xcodebuild \
             -project TitaDashboard.xcodeproj \
             -scheme TitaDashboard \
@@ -32,7 +33,15 @@ jobs:
             archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" 2>&1 | tee build.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -ne 0 ]; then
+            echo "========== 编译错误汇总 =========="
+            grep -E "error:" build.log | head -60 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit "$STATUS"
+          fi
 
       - name: 打包 IPA
         run: |
